@@ -1,8 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
-import type { User } from '../interfaces/user';
+import type { IUser } from '../interfaces/user';
 
-const userSchema = new mongoose.Schema<User>(
+const userSchema = new mongoose.Schema<IUser>(
   {
     username: {
       type: String,
