@@ -1,10 +1,7 @@
-import { Request, response, Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import env from 'dotenv';
 import User from '../models/user-model';
-
-const JWT_SECRET = process?.env?.JWT_SECRET ?? '';
 
 export const loginUser = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -13,7 +10,7 @@ export const loginUser = async (req: Request, res: Response) => {
     if (user) {
       const isPasswordMatched = await user.authenticate(password);
       if (isPasswordMatched) {
-        const token = jwt.sign({ _id: user._id, email: user.email }, JWT_SECRET, {
+        const token = jwt.sign({ _id: user._id, email: user.email }, process.env.JWT_SECRET ?? '', {
           expiresIn: '3d',
         });
         res.status(200).json({ message: 'User is signed in successfully', body: { token, user } });
@@ -24,7 +21,7 @@ export const loginUser = async (req: Request, res: Response) => {
       throw 'User not found';
     }
   } catch (error) {
-    res.status(400).json({ message: 'Error while login', body: error });
+    res.status(400).json({ message: 'Error while login', error: error });
   }
 };
 
@@ -46,11 +43,9 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const savedUser = await _user.save();
 
-    response
-      .status(200)
-      .json({ message: 'User is signed up successfully', body: { User: savedUser } });
+    res.status(200).json({ message: 'User is signed up successfully', body: { User: savedUser } });
   } catch (error) {
-    response.status(400).json({
+    res.status(400).json({
       message: 'Error while saving the user',
       error: JSON.stringify(error),
     });

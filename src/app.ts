@@ -4,6 +4,7 @@ import cors from 'cors';
 import { errorMiddleware } from './middleware/error-middleware';
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
