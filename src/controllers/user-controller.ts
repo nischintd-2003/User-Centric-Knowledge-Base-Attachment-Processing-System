@@ -6,6 +6,28 @@ import User from '../models/user-model';
 
 const JWT_SECRET = process?.env?.JWT_SECRET ?? '';
 
+export const loginUser = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (user) {
+      const isPasswordMatched = await user.authenticate(password);
+      if (isPasswordMatched) {
+        const token = jwt.sign({ _id: user._id, email: user.email }, JWT_SECRET, {
+          expiresIn: '3d',
+        });
+        res.status(200).json({ message: 'User is signed in successfully', body: { token, user } });
+      } else {
+        throw 'Password is incorrect';
+      }
+    } else {
+      throw 'User not found';
+    }
+  } catch (error) {
+    res.status(400).json({ message: 'Error while login', body: error });
+  }
+};
+
 export const registerUser = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
