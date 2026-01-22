@@ -5,12 +5,13 @@ import {
   getUserCollection,
   updateCollection,
 } from '../controllers/collection-controller';
+import { authMiddleware } from '../middleware/auth-middleware';
 
 const collectionRoute = Router();
 
-collectionRoute.post('/', createCollection);
-collectionRoute.get('/', getUserCollection);
-collectionRoute.put('/:collectionId', updateCollection);
-collectionRoute.delete('/:collectionId', deleteCollection);
+collectionRoute.post('/', authMiddleware, createCollection);
+collectionRoute.get('/', authMiddleware, getUserCollection);
+collectionRoute.put('/:collectionId', authMiddleware, updateCollection);
+collectionRoute.delete('/:collectionId', authMiddleware, deleteCollection);
 
 export default collectionRoute;
