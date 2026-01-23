@@ -33,7 +33,9 @@ export const registerUser = async (req: Request, res: Response) => {
     if (alreadyAUser) {
       throw 'User is already present with same email';
     }
-    const hashPassword = await bcrypt.hash(password, 10);
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
 
     const _user = new User({
       username,
