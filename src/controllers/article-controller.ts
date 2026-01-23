@@ -17,6 +17,17 @@ const getCollectionId = (req: IAuthRequest) => {
   return collectionId;
 };
 
+const getArticleId = (req: IAuthRequest) => {
+  let { articleId } = req.params;
+  if (Array.isArray(articleId)) {
+    articleId = articleId[0];
+  }
+  if (!articleId) {
+    throw new Error('Article ID is required');
+  }
+  return articleId;
+};
+
 export const createArticle = async (req: IAuthRequest, res: Response) => {
   try {
     const userId = req.user._id;
@@ -73,7 +84,29 @@ export const getCollectionArticles = async (req: IAuthRequest, res: Response) =>
 
 export const getArticleDetails = async (req: IAuthRequest, res: Response) => {
   try {
-  } catch (error) {}
+    const userId = req.user._id;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    const collectionId = getCollectionId(req);
+    const articleId = getArticleId(req);
+
+    const foundArticle = await Article.findOne({
+      userId: userId,
+      collectionId: collectionId,
+      _id: articleId,
+    });
+
+    res.status(200).json({
+      message: 'Article  details fetched successfully',
+      body: { Article: foundArticle },
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error while fetching the article',
+      error: JSON.stringify(error),
+    });
+  }
 };
 
 export const updateArticle = async (req: IAuthRequest, res: Response) => {
