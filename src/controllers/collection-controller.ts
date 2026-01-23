@@ -55,6 +55,9 @@ export const getUserCollection = async (req: IAuthRequest, res: Response) => {
 export const updateCollection = async (req: IAuthRequest, res: Response) => {
   try {
     const userId = req.user._id;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     let { collectionId } = req.params;
     const { name, description } = req.body;
 
@@ -71,15 +74,39 @@ export const updateCollection = async (req: IAuthRequest, res: Response) => {
       message: 'Collection is updated succefully',
       body: { updatedCollection: updatedCollection },
     });
-
-    if (userId) {
-      throw new Error('User not authenticated');
-    }
     const documentToUpdate = await Collection.findOne({});
-  } catch (error) {}
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error : no documents found',
+      error: JSON.stringify(error),
+    });
+  }
 };
 
 export const deleteCollection = async (req: IAuthRequest, res: Response) => {
+  const userId = req.user._id;
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+  let { collectionId } = req.params;
+
+  if (Array.isArray(collectionId)) {
+    collectionId = collectionId[0];
+  }
+
+  const deletedDocument = await Collection.deleteOne({
+    userId: userId,
+    _id: new ObjectId(collectionId),
+  });
+  res.status(200).json({
+    message: 'Collection is deleted succefully',
+    body: { deletedCollection: deletedDocument },
+  });
   try {
-  } catch (error) {}
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error : No documents found',
+      error: JSON.stringify(error),
+    });
+  }
 };
