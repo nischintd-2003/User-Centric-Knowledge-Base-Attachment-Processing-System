@@ -84,16 +84,9 @@ export const getCollectionArticles = async (req: IAuthRequest, res: Response) =>
 
 export const getArticleDetails = async (req: IAuthRequest, res: Response) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    const collectionId = getCollectionId(req);
     const articleId = getArticleId(req);
 
     const foundArticle = await Article.findOne({
-      userId: userId,
-      collectionId: collectionId,
       _id: articleId,
     });
 
@@ -111,15 +104,10 @@ export const getArticleDetails = async (req: IAuthRequest, res: Response) => {
 
 export const updateArticle = async (req: IAuthRequest, res: Response) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    const collectionId = getCollectionId(req);
     const articleId = getArticleId(req);
     const { title, content } = req.body;
     const updatedArticle = await Article.updateOne(
-      { userId: userId, collectionId: collectionId, _id: articleId },
+      { _id: articleId },
       { $set: { title: title, content: content } },
     );
     res.status(200).json({
@@ -135,12 +123,12 @@ export const updateArticle = async (req: IAuthRequest, res: Response) => {
 };
 export const deleteArticle = async (req: IAuthRequest, res: Response) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    const collectionId = getCollectionId;
-    const articleId = getArticleId;
+    const articleId = getArticleId(req);
+    const deletedArticle = await Article.deleteOne({ _id: articleId });
+    res.status(200).json({
+      message: 'Article deleted successfully',
+      body: { updatedArticle: deletedArticle },
+    });
   } catch (error) {
     res.status(400).json({
       message: 'Error while deleting the article',
