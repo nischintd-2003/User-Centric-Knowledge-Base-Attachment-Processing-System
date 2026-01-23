@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Collection from '../models/collection-model';
 import { ObjectId } from 'mongodb';
 
-interface IAuthRequest extends Request {
+export interface IAuthRequest extends Request {
   user?: any;
 }
 
@@ -21,9 +21,10 @@ export const createCollection = async (req: IAuthRequest, res: Response) => {
     });
 
     const savedCollection = await _collection.save();
-    res
-      .status(200)
-      .json({ message: 'Collection is created succefully', body: { Collection: savedCollection } });
+    res.status(200).json({
+      message: 'Collection is created successfully',
+      body: { Collection: savedCollection },
+    });
   } catch (error) {
     res.status(400).json({
       message: 'Error while saving the collection',
@@ -41,7 +42,7 @@ export const getUserCollection = async (req: IAuthRequest, res: Response) => {
 
     const userCollections = await Collection.find({ userId: userId }).sort({ createdAt: -1 });
     res.status(200).json({
-      message: 'Collection is created succefully',
+      message: 'Collections are fetched successfully',
       body: { userCollection: userCollections },
     });
   } catch (error) {
@@ -71,7 +72,7 @@ export const updateCollection = async (req: IAuthRequest, res: Response) => {
     );
 
     res.status(200).json({
-      message: 'Collection is updated succefully',
+      message: 'Collection is updated successfully',
       body: { updatedCollection: updatedCollection },
     });
     const documentToUpdate = await Collection.findOne({});
@@ -99,7 +100,7 @@ export const deleteCollection = async (req: IAuthRequest, res: Response) => {
     _id: new ObjectId(collectionId),
   });
   res.status(200).json({
-    message: 'Collection is deleted succefully',
+    message: 'Collection is deleted successfully',
     body: { deletedCollection: deletedDocument },
   });
   try {

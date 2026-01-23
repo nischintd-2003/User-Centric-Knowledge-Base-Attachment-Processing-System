@@ -8,7 +8,7 @@ import {
 } from '../controllers/article-controller';
 import { authMiddleware } from '../middleware/auth-middleware';
 
-const articleRoute = Router();
+const articleRoute = Router({ mergeParams: true });
 
 articleRoute.post('/', authMiddleware, createArticle);
 articleRoute.get('/', authMiddleware, getCollectionArticles);
