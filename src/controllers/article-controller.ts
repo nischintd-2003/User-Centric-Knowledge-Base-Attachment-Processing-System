@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import Article from '../models/article-model';
-import { ObjectId } from 'mongodb';
 
 export interface IAuthRequest extends Request {
   user?: any;

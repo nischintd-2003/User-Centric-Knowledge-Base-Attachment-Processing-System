@@ -71,11 +71,14 @@ export const updateCollection = async (req: IAuthRequest, res: Response) => {
       { $set: { name: name, description: description } },
     );
 
+    if (!updatedCollection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+
     res.status(200).json({
       message: 'Collection is updated successfully',
       body: { updatedCollection: updatedCollection },
     });
-    const documentToUpdate = await Collection.findOne({});
   } catch (error) {
     res.status(400).json({
       message: 'Error : no documents found',
@@ -99,6 +102,10 @@ export const deleteCollection = async (req: IAuthRequest, res: Response) => {
     userId: userId,
     _id: new ObjectId(collectionId),
   });
+
+  if (!deletedDocument) {
+    return res.status(404).json({ message: 'Collection not found' });
+  }
   res.status(200).json({
     message: 'Collection is deleted successfully',
     body: { deletedCollection: deletedDocument },
