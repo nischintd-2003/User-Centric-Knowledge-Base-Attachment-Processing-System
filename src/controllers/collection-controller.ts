@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import Collection from '../models/collection-model';
 import { ObjectId } from 'mongodb';
+import Article from '../models/article-model';
+import Attachment from '../models/attachment-model';
+import fs from 'fs';
 
 export interface IAuthRequest extends Request {
   user?: any;
@@ -98,17 +101,52 @@ export const deleteCollection = async (req: IAuthRequest, res: Response) => {
     collectionId = collectionId[0];
   }
 
-  const deletedDocument = await Collection.deleteOne({
-    userId: userId,
-    _id: new ObjectId(collectionId),
+  if (!collectionId) {
+    throw new Error('Collection ID is required');
+  }
+
+  const collection = await Collection.findOne({
+    _id: collectionId,
+    userId,
   });
 
-  if (!deletedDocument) {
+  if (!collection) {
     return res.status(404).json({ message: 'Collection not found' });
   }
+
+  const articles = await Article.find({
+    collectionId,
+    userId,
+  });
+
+  const articleIds = articles.map((a) => a._id);
+
+  const attachments = await Attachment.find({
+    articleId: { $in: articleIds },
+    userId,
+  });
+
+  for (const attachment of attachments) {
+    if (fs.existsSync(attachment.path)) {
+      fs.unlinkSync(attachment.path);
+    }
+  }
+
+  await Attachment.deleteMany({
+    articleId: { $in: articleIds },
+    userId,
+  });
+
+  await Article.deleteMany({
+    collectionId,
+    userId,
+  });
+
+  await collection.deleteOne();
+
   res.status(200).json({
     message: 'Collection is deleted successfully',
-    body: { deletedCollection: deletedDocument },
+    body: { deletedCollection: collection },
   });
   try {
   } catch (error) {

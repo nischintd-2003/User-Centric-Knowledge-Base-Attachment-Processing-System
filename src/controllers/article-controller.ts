@@ -4,12 +4,6 @@ import { IAuthRequest } from './collection-controller';
 import fs from 'fs';
 import Attachment from '../models/attachment-model';
 
-const deleteFileIfExists = (filePath: string) => {
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
-};
-
 const getCollectionId = (req: IAuthRequest) => {
   let { collectionId } = req.params;
   if (Array.isArray(collectionId)) {
