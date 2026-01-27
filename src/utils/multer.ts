@@ -1,25 +1,23 @@
-import { Request } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
+const uploadDir = path.join(process.cwd(), 'uploads');
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
-  destination(req: Request, file, cb) {
-    const userId = req.user?.userId;
-    const articleId = req.params.articleId;
-
-    if (!userId || typeof articleId !== 'string') {
-      return cb(new Error('Invalid user or article id'), '');
-    }
-
-    const uploadPath = path.join('storage', 'users', userId, 'articles', articleId);
-
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
+  destination(req, file, cb) {
+    cb(null, uploadDir);
   },
 
-  filename(req: Request, file, cb) {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
+  filename(req, file, cb) {
+    const uniqueName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}${path.extname(file.originalname)}`;
+
     cb(null, uniqueName);
   },
 });

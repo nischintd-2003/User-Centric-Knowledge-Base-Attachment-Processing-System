@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
 import Article from '../models/article-model';
-
-export interface IAuthRequest extends Request {
-  user?: any;
-}
+import { IAuthRequest } from './collection-controller';
 
 const getCollectionId = (req: IAuthRequest) => {
   let { collectionId } = req.params;
