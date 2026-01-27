@@ -7,6 +7,7 @@ import {
   updateArticle,
 } from '../controllers/article-controller';
 import { authMiddleware } from '../middleware/auth-middleware';
+import attachmentRoutes from './attachment-route';
 
 const articleRoute = Router({ mergeParams: true });
 
@@ -15,5 +16,6 @@ articleRoute.get('/', authMiddleware, getCollectionArticles);
 articleRoute.get('/:articleId', authMiddleware, getArticleDetails);
 articleRoute.put('/:articleId', authMiddleware, updateArticle);
 articleRoute.delete('/:articleId', authMiddleware, deleteArticle);
+articleRoute.use('/:articleId/attachments', attachmentRoutes);
 
 export default articleRoute;

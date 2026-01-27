@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { IAttachment } from '../interfaces/attachment';
 import User from './user-model';
-import { ref } from 'node:process';
 import Article from './article-model';
 
 const attachmentSchema = new mongoose.Schema<IAttachment>(
