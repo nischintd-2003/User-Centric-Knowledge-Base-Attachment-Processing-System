@@ -12,7 +12,7 @@ const attachmentRoutes = Router({ mergeParams: true });
 
 attachmentRoutes.post('/', authMiddleware, upload.array('files'), uploadAttachments);
 attachmentRoutes.get('/', authMiddleware, listAttachments);
-attachmentRoutes.get(':attachmentId/download', authMiddleware, downloadAttachment);
+attachmentRoutes.get('/:attachmentId/download', authMiddleware, downloadAttachment);
 attachmentRoutes.delete('/:attachmentId', authMiddleware, deleteAttachment);
 
 export default attachmentRoutes;

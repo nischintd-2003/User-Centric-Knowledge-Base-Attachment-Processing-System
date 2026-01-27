@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import fs from 'fs';
 import Attachment from '../models/attachment-model';
 import Article from '../models/article-model';
 import { IAuthRequest } from './collection-controller';
@@ -71,6 +72,35 @@ export const listAttachments = async (req: IAuthRequest, res: Response) => {
   }
 };
 
-export const downloadAttachment = async (req: IAuthRequest, res: Response) => {};
+export const downloadAttachment = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { attachmentId } = req.params;
+    const userId = req.user._id;
+
+    if (!userId || typeof attachmentId !== 'string') {
+      return res.status(400).json({ message: 'Invalid request parameters' });
+    }
+
+    const attachment = await Attachment.findOne({
+      _id: attachmentId,
+      userId,
+    });
+
+    if (!attachment) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+
+    if (!fs.existsSync(attachment.path)) {
+      return res.status(410).json({ message: 'File not found on disk' });
+    }
+
+    res.download(attachment.path, attachment.filename);
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error while downloading the  file',
+      error: JSON.stringify(error),
+    });
+  }
+};
 
 export const deleteAttachment = async (req: IAuthRequest, res: Response) => {};
