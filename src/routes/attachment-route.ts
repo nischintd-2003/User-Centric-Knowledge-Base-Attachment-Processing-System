@@ -56,8 +56,6 @@ attachmentRoutes.get('/', authMiddleware, listAttachments);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: collectionId
- *       - in: path
  *         name: articleId
  *       - in: path
  *         name: attachmentId
@@ -75,8 +73,6 @@ attachmentRoutes.get('/:attachmentId/download', authMiddleware, downloadAttachme
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: collectionId
  *       - in: path
  *         name: articleId
  *       - in: path
