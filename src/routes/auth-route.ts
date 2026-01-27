@@ -49,7 +49,7 @@ authRoutes.post('/register', registerUser);
  *                 type: string
  *     responses:
  *       200:
- *         description: User registered successfully
+ *         description: User logged in successfully
  */
 authRoutes.post('/login', loginUser);
 
