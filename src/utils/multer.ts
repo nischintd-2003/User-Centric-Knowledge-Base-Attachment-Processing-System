@@ -12,13 +12,7 @@ const storage = multer.diskStorage({
       return cb(new Error('Invalid user or article id'), '');
     }
 
-    const uploadPath = path.join(
-      'storage',
-      'users',
-      userId,
-      'articles',
-      articleId
-    );
+    const uploadPath = path.join('storage', 'users', userId, 'articles', articleId);
 
     fs.mkdirSync(uploadPath, { recursive: true });
     cb(null, uploadPath);
@@ -27,12 +21,12 @@ const storage = multer.diskStorage({
   filename(req: Request, file, cb) {
     const uniqueName = `${Date.now()}-${file.originalname}`;
     cb(null, uniqueName);
-  }
+  },
 });
 
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 
-  }
+    fileSize: 10 * 1024 * 1024,
+  },
 });
