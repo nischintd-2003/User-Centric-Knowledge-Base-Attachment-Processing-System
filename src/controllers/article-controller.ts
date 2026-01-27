@@ -1,8 +1,11 @@
-import { Response } from 'express';
+import { NextFunction, Response } from 'express';
 import Article from '../models/article-model';
 import { IAuthRequest } from './collection-controller';
 import fs from 'fs';
 import Attachment from '../models/attachment-model';
+import Job from '../models/job-model';
+import { Worker } from 'worker_threads';
+import path from 'path';
 
 const getCollectionId = (req: IAuthRequest) => {
   let { collectionId } = req.params;
@@ -43,6 +46,21 @@ export const createArticle = async (req: IAuthRequest, res: Response) => {
     });
 
     const savedArticle = await _article.save();
+
+    const job = await Job.create({
+      userId,
+      articleId: _article._id,
+      status: 'PENDING',
+    });
+
+    const workerPath = path.join(process.cwd(), 'dist', 'workers', 'article-worker.js');
+
+    new Worker(workerPath, {
+      workerData: {
+        jobId: job._id.toString(),
+        articleId: _article._id.toString(),
+      },
+    });
 
     res
       .status(200)
@@ -102,12 +120,29 @@ export const getArticleDetails = async (req: IAuthRequest, res: Response) => {
 
 export const updateArticle = async (req: IAuthRequest, res: Response) => {
   try {
+    const userId = req.user._id;
     const articleId = getArticleId(req);
     const { title, content } = req.body;
     const updatedArticle = await Article.updateOne(
       { _id: articleId },
       { $set: { title: title, content: content } },
     );
+
+    const job = await Job.create({
+      userId,
+      articleId,
+      status: 'PENDING',
+    });
+
+    const workerPath = path.join(process.cwd(), 'dist', 'workers', 'article-worker.js');
+
+    new Worker(workerPath, {
+      workerData: {
+        jobId: job._id.toString(),
+        articleId,
+      },
+    });
+
     res.status(200).json({
       message: 'Article updated successfully',
       body: { updatedArticle: updatedArticle },
@@ -160,5 +195,30 @@ export const deleteArticle = async (req: IAuthRequest, res: Response) => {
       message: 'Error while deleting the article',
       error: JSON.stringify(error),
     });
+  }
+};
+
+export const getJobStatus = async (req: IAuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { articleId, jobId } = req.params;
+    const userId = req.user._id;
+
+    if (!userId || typeof articleId !== 'string' || typeof jobId !== 'string') {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const job = await Job.findOne({
+      _id: jobId,
+      articleId,
+      userId,
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.json(job);
+  } catch (err) {
+    next(err);
   }
 };
