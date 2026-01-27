@@ -103,4 +103,35 @@ export const downloadAttachment = async (req: IAuthRequest, res: Response) => {
   }
 };
 
-export const deleteAttachment = async (req: IAuthRequest, res: Response) => {};
+export const deleteAttachment = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { attachmentId } = req.params;
+    const userId = req.user._id;
+
+    if (!userId || typeof attachmentId !== 'string') {
+      return res.status(400).json({ message: 'Invalid request parameters' });
+    }
+
+    const attachment = await Attachment.findOne({
+      _id: attachmentId,
+      userId,
+    });
+
+    if (!attachment) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+
+    if (fs.existsSync(attachment.path)) {
+      fs.unlinkSync(attachment.path);
+    }
+
+    await attachment.deleteOne();
+
+    res.status(200).json({ message: 'Attachment deleted successfully', body: attachment });
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error while deleting file',
+      error: JSON.stringify(error),
+    });
+  }
+};
