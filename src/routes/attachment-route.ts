@@ -48,7 +48,7 @@ attachmentRoutes.post('/', authMiddleware, upload.array('files'), uploadAttachme
 attachmentRoutes.get('/', authMiddleware, listAttachments);
 /**
  * @swagger
- * /api/collections/{:collectionId}/articles/{:articleId}/{:attachmentId}/download:
+ * /api/attachments/{:attachmentId}/download:
  *   get:
  *     summary: Download a attachment from a article
  *     tags: [Attachments]
@@ -68,7 +68,7 @@ attachmentRoutes.get('/', authMiddleware, listAttachments);
 attachmentRoutes.get('/:attachmentId/download', authMiddleware, downloadAttachment);
 /**
  * @swagger
- * /api/collections/{:collectionId}/articles/{:articleId}/{:attachmentId}/download:
+ * /api/attachments/{:attachmentId}/download:
  *   delete:
  *     summary: Delete a attachment from the article
  *     tags: [Attachments]
