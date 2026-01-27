@@ -48,12 +48,15 @@ collectionRoute.post('/', authMiddleware, createCollection);
 collectionRoute.get('/', authMiddleware, getUserCollection);
 /**
  * @swagger
- * /api/collections:
+ * /api/collections/{collectionId}:
  *   put:
  *     summary: Update a specific collection
  *     tags: [Collections]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *      - name: collectionId
+ *        in: path
  *     responses:
  *       200:
  *         description: Update a collection
@@ -61,12 +64,15 @@ collectionRoute.get('/', authMiddleware, getUserCollection);
 collectionRoute.put('/:collectionId', authMiddleware, updateCollection);
 /**
  * @swagger
- * /api/collections:
+ * /api/collections/{collectionId}:
  *   delete:
  *     summary: Delete a collection
  *     tags: [Collections]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *      - name: collectionId
+ *        in: path
  *     responses:
  *       200:
  *         description: A collection will be deleted along with it's articles and attachments
