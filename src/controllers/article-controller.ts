@@ -1,6 +1,14 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import Article from '../models/article-model';
 import { IAuthRequest } from './collection-controller';
+import fs from 'fs';
+import Attachment from '../models/attachment-model';
+
+const deleteFileIfExists = (filePath: string) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
 
 const getCollectionId = (req: IAuthRequest) => {
   let { collectionId } = req.params;
@@ -117,13 +125,41 @@ export const updateArticle = async (req: IAuthRequest, res: Response) => {
     });
   }
 };
+
 export const deleteArticle = async (req: IAuthRequest, res: Response) => {
   try {
+    const collectionId = getCollectionId(req);
     const articleId = getArticleId(req);
-    const deletedArticle = await Article.deleteOne({ _id: articleId });
+    const userId = req.user._id;
+
+    if (!userId || typeof articleId !== 'string') {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const article = await Article.findOne({
+      _id: articleId,
+      collectionId,
+      userId,
+    });
+
+    if (!article) {
+      return res.status(404).json({ message: 'Article not found' });
+    }
+
+    const attachments = await Attachment.find({ articleId, userId });
+
+    for (const attachment of attachments) {
+      if (fs.existsSync(attachment.path)) {
+        fs.unlinkSync(attachment.path);
+      }
+    }
+
+    await Attachment.deleteMany({ articleId, userId });
+
+    await article.deleteOne();
+
     res.status(200).json({
       message: 'Article deleted successfully',
-      body: { updatedArticle: deletedArticle },
     });
   } catch (error) {
     res.status(400).json({

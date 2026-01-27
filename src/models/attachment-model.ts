@@ -43,6 +43,6 @@ const attachmentSchema = new mongoose.Schema<IAttachment>(
   },
 );
 
-const attachment = mongoose.model('Attachment', attachmentSchema);
+const Attachment = mongoose.model('Attachment', attachmentSchema);
 
-export default attachment;
+export default Attachment;
