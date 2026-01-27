@@ -42,14 +42,35 @@ export const uploadAttachments = async (req: IAuthRequest, res: Response) => {
     res.status(200).json({ message: 'Uploaded the file successfully', body: savedAttachments });
   } catch (error) {
     res.status(400).json({
-      message: 'Error while uploading the file',
+      message: 'Error while uploading files',
       error: JSON.stringify(error),
     });
   }
 };
 
-export const listAttachments = async (req: Request, res: Response) => {};
+export const listAttachments = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { articleId } = req.params;
+    const userId = req.user._id;
 
-export const downloadAttachment = async (req: Request, res: Response) => {};
+    if (!userId || typeof articleId !== 'string') {
+      return res.status(400).json({ message: 'Invalid request parameters' });
+    }
 
-export const deleteAttachment = async (req: Request, res: Response) => {};
+    const attachments = await Attachment.find({
+      articleId,
+      userId,
+    });
+
+    res.status(200).json({ message: 'Attachments fetched successfully', body: attachments });
+  } catch (error) {
+    res.status(400).json({
+      message: 'Error while fetching files',
+      error: JSON.stringify(error),
+    });
+  }
+};
+
+export const downloadAttachment = async (req: IAuthRequest, res: Response) => {};
+
+export const deleteAttachment = async (req: IAuthRequest, res: Response) => {};
