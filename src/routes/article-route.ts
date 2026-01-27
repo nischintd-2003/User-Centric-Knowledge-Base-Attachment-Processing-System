@@ -85,7 +85,7 @@ articleRoute.get('/:articleId', authMiddleware, getArticleDetails);
  *       - in: path
  *         name: collectionId
  *       - in: path
- *         name: articleId 
+ *         name: articleId
  *     responses:
  *       200:
  *         description: Update a article
