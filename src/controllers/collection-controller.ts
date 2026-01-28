@@ -91,64 +91,64 @@ export const updateCollection = async (req: IAuthRequest, res: Response) => {
 };
 
 export const deleteCollection = async (req: IAuthRequest, res: Response) => {
-  const userId = req.user._id;
-  if (!userId) {
-    throw new Error('User not authenticated');
-  }
-  let { collectionId } = req.params;
-
-  if (Array.isArray(collectionId)) {
-    collectionId = collectionId[0];
-  }
-
-  if (!collectionId) {
-    throw new Error('Collection ID is required');
-  }
-
-  const collection = await Collection.findOne({
-    _id: collectionId,
-    userId,
-  });
-
-  if (!collection) {
-    return res.status(404).json({ message: 'Collection not found' });
-  }
-
-  const articles = await Article.find({
-    collectionId,
-    userId,
-  });
-
-  const articleIds = articles.map((a) => a._id);
-
-  const attachments = await Attachment.find({
-    articleId: { $in: articleIds },
-    userId,
-  });
-
-  for (const attachment of attachments) {
-    if (fs.existsSync(attachment.path)) {
-      fs.unlinkSync(attachment.path);
-    }
-  }
-
-  await Attachment.deleteMany({
-    articleId: { $in: articleIds },
-    userId,
-  });
-
-  await Article.deleteMany({
-    collectionId,
-    userId,
-  });
-
-  await collection.deleteOne();
-
-  res.status(200).json({
-    message: 'Collection is deleted successfully',
-    body: { deletedCollection: collection },
-  });
   try {
+    const userId = req.user._id;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    let { collectionId } = req.params;
+
+    if (Array.isArray(collectionId)) {
+      collectionId = collectionId[0];
+    }
+
+    if (!collectionId) {
+      throw new Error('Collection ID is required');
+    }
+
+    const collection = await Collection.findOne({
+      _id: collectionId,
+      userId,
+    });
+
+    if (!collection) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+
+    const articles = await Article.find({
+      collectionId,
+      userId,
+    });
+
+    const articleIds = articles.map((a) => a._id);
+
+    const attachments = await Attachment.find({
+      articleId: { $in: articleIds },
+      userId,
+    });
+
+    for (const attachment of attachments) {
+      if (fs.existsSync(attachment.path)) {
+        fs.unlinkSync(attachment.path);
+      }
+    }
+
+    await Attachment.deleteMany({
+      articleId: { $in: articleIds },
+      userId,
+    });
+
+    await Article.deleteMany({
+      collectionId,
+      userId,
+    });
+
+    await collection.deleteOne();
+
+    res.status(200).json({
+      message: 'Collection is deleted successfully',
+      body: { deletedCollection: collection },
+    });
   } catch (error) {
     res.status(400).json({
       message: 'Error : No documents found',

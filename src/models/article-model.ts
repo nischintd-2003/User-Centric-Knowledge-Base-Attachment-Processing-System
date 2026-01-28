@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { IArticle } from '../interfaces/article';
 import User from './user-model';
 import Collection from './collection-model';
-import { title } from 'node:process';
 
 const articleSchema = new mongoose.Schema<IArticle>(
   {
