@@ -1,55 +1,32 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../models/user-model';
+import { Request, Response, NextFunction } from 'express';
+import { loginUserService, registerUserService } from '../services/user-service';
 
-export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await User.findOne({ email });
-    if (user) {
-      const isPasswordMatched = await user.authenticate(password);
-      if (isPasswordMatched) {
-        const token = jwt.sign({ _id: user._id, email: user.email }, process.env.JWT_SECRET ?? '', {
-          expiresIn: '3d',
-        });
-        res.status(200).json({ message: 'User is signed in successfully', body: { token, user } });
-      } else {
-        throw 'Password is incorrect';
-      }
-    } else {
-      throw 'User not found';
-    }
+    const { username, email, password } = req.body;
+
+    const user = await registerUserService(username, email, password);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      body: { user },
+    });
   } catch (error) {
-    res.status(400).json({ message: 'Error while login', error: error });
+    next(error);
   }
 };
 
-export const registerUser = async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
-
+export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const alreadyAUser = await User.findOne({ email });
-    if (alreadyAUser) {
-      throw 'User is already present with same email';
-    }
+    const { email, password } = req.body;
 
-    const salt = await bcrypt.genSalt(10);
-    const hashPassword = await bcrypt.hash(password, salt);
+    const { user, token } = await loginUserService(email, password);
 
-    const _user = new User({
-      username,
-      email,
-      hashPassword,
+    res.status(200).json({
+      message: 'User logged in successfully',
+      body: { token, user },
     });
-
-    const savedUser = await _user.save();
-
-    res.status(200).json({ message: 'User is signed up successfully', body: { User: savedUser } });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while saving the user',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
