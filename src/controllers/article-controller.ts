@@ -1,224 +1,130 @@
-import { NextFunction, Response } from 'express';
-import Article from '../models/article-model';
+import { Response, NextFunction } from 'express';
 import { IAuthRequest } from './collection-controller';
-import fs from 'fs';
-import Attachment from '../models/attachment-model';
-import Job from '../models/job-model';
-import { Worker } from 'worker_threads';
-import path from 'path';
+import {
+  createArticleService,
+  deleteArticleService,
+  getArticleDetailsService,
+  getCollectionArticlesService,
+  getJobStatusService,
+  updateArticleService,
+} from '../services/article-service';
+import { AppError } from '../utils/app-error';
 
-const getCollectionId = (req: IAuthRequest) => {
-  let { collectionId } = req.params;
-  if (Array.isArray(collectionId)) {
-    collectionId = collectionId[0];
+const getParamAsString = (param: string | string[] | undefined, name: string): string => {
+  if (param === undefined) {
+    throw new AppError(`${name} is required`, 400);
   }
-  if (!collectionId) {
-    throw new Error('Collection ID is required');
-  }
-  return collectionId;
-};
 
-const getArticleId = (req: IAuthRequest) => {
-  let { articleId } = req.params;
-  if (Array.isArray(articleId)) {
-    articleId = articleId[0];
-  }
-  if (!articleId) {
-    throw new Error('Article ID is required');
-  }
-  return articleId;
-};
-
-export const createArticle = async (req: IAuthRequest, res: Response) => {
-  try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
+  if (Array.isArray(param)) {
+    if (!param[0]) {
+      throw new AppError(`${name} is required`, 400);
     }
-    const collectionId = getCollectionId(req);
+    return param[0];
+  }
+
+  return param;
+};
+
+export const createArticle = async (req: IAuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) throw new AppError('Unauthorized', 401);
+
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
     const { title, content } = req.body;
 
-    const _article = new Article({
-      title,
-      content,
-      userId,
-      collectionId,
+    const article = await createArticleService(req.user._id, collectionId, title, content);
+
+    res.status(201).json({
+      message: 'Article created successfully',
+      body: { article },
     });
-
-    const savedArticle = await _article.save();
-
-    const job = await Job.create({
-      userId,
-      articleId: _article._id,
-      status: 'PENDING',
-    });
-
-    const workerPath = path.join(process.cwd(), 'dist', 'workers', 'article-worker.js');
-
-    new Worker(workerPath, {
-      workerData: {
-        jobId: job._id.toString(),
-        articleId: _article._id.toString(),
-      },
-    });
-
-    res
-      .status(200)
-      .json({ message: 'Article is created succefully', body: { Article: savedArticle } });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while saving the article',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const getCollectionArticles = async (req: IAuthRequest, res: Response) => {
+export const getCollectionArticles = async (
+  req: IAuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    const collectionId = getCollectionId(req);
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    const articles = await Article.find({
-      userId: userId,
-      collectionId: collectionId,
-    }).sort({ createdAt: -1 });
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
+
+    const articles = await getCollectionArticlesService(req.user._id, collectionId);
 
     res.status(200).json({
       message: 'Articles fetched successfully',
-      body: { Articles: articles },
+      body: { articles },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while fetching the article',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const getArticleDetails = async (req: IAuthRequest, res: Response) => {
+export const getArticleDetails = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const articleId = getArticleId(req);
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
 
-    const foundArticle = await Article.findOne({
-      _id: articleId,
-    });
+    const article = await getArticleDetailsService(articleId);
 
     res.status(200).json({
-      message: 'Article  details fetched successfully',
-      body: { Article: foundArticle },
+      message: 'Article details fetched successfully',
+      body: { article },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while fetching the article',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const updateArticle = async (req: IAuthRequest, res: Response) => {
+export const updateArticle = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user._id;
-    const articleId = getArticleId(req);
+    if (!req.user) throw new AppError('Unauthorized', 401);
+
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
     const { title, content } = req.body;
-    const updatedArticle = await Article.updateOne(
-      { _id: articleId },
-      { $set: { title: title, content: content } },
-    );
 
-    const job = await Job.create({
-      userId,
-      articleId,
-      status: 'PENDING',
-    });
-
-    const workerPath = path.join(process.cwd(), 'dist', 'workers', 'article-worker.js');
-
-    new Worker(workerPath, {
-      workerData: {
-        jobId: job._id.toString(),
-        articleId,
-      },
-    });
+    const article = await updateArticleService(req.user._id, articleId, title, content);
 
     res.status(200).json({
       message: 'Article updated successfully',
-      body: { updatedArticle: updatedArticle },
+      body: { article },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while updating the article',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const deleteArticle = async (req: IAuthRequest, res: Response) => {
+export const deleteArticle = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const collectionId = getCollectionId(req);
-    const articleId = getArticleId(req);
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    if (!userId || typeof articleId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request' });
-    }
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
 
-    const article = await Article.findOne({
-      _id: articleId,
-      collectionId,
-      userId,
-    });
-
-    if (!article) {
-      return res.status(404).json({ message: 'Article not found' });
-    }
-
-    const attachments = await Attachment.find({ articleId, userId });
-
-    for (const attachment of attachments) {
-      if (fs.existsSync(attachment.path)) {
-        fs.unlinkSync(attachment.path);
-      }
-    }
-
-    await Attachment.deleteMany({ articleId, userId });
-
-    await article.deleteOne();
+    await deleteArticleService(req.user._id, collectionId, articleId);
 
     res.status(200).json({
       message: 'Article deleted successfully',
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while deleting the article',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
 export const getJobStatus = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { articleId, jobId } = req.params;
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    if (!userId || typeof articleId !== 'string' || typeof jobId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request' });
-    }
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
+    const jobId = getParamAsString(req.params.jobId, 'jobId');
 
-    const job = await Job.findOne({
-      _id: jobId,
-      articleId,
-      userId,
-    });
+    const job = await getJobStatusService(req.user._id, articleId, jobId);
 
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-
-    res.json(job);
-  } catch (err) {
-    next(err);
+    res.status(200).json(job);
+  } catch (error) {
+    next(error);
   }
 };
