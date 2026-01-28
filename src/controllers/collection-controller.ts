@@ -1,158 +1,105 @@
-import { Request, Response } from 'express';
-import Collection from '../models/collection-model';
-import { ObjectId } from 'mongodb';
-import Article from '../models/article-model';
-import Attachment from '../models/attachment-model';
-import fs from 'fs';
+import { Request, Response, NextFunction } from 'express';
+import {
+  createCollectionService,
+  deleteCollectionService,
+  getUserCollectionsService,
+  updateCollectionService,
+} from '../services/collection-service';
+import { AppError } from '../utils/app-error';
 
 export interface IAuthRequest extends Request {
   user?: any;
 }
 
-export const createCollection = async (req: IAuthRequest, res: Response) => {
-  try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
+const getParamAsString = (param: string | string[] | undefined, name: string): string => {
+  if (param === undefined) {
+    throw new AppError(`${name} is required`, 400);
+  }
+
+  if (Array.isArray(param)) {
+    const value = param[0];
+
+    if (value === undefined) {
+      throw new AppError(`${name} is required`, 400);
     }
+
+    return value;
+  }
+
+  return param;
+};
+
+export const createCollection = async (req: IAuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Unauthorized', 401);
+    }
+
     const { name, description } = req.body;
 
-    const _collection = new Collection({
-      name,
-      description,
-      userId,
-    });
+    const collection = await createCollectionService(req.user._id, name, description);
 
-    const savedCollection = await _collection.save();
-    res.status(200).json({
-      message: 'Collection is created successfully',
-      body: { Collection: savedCollection },
+    res.status(201).json({
+      message: 'Collection created successfully',
+      body: { collection },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while saving the collection',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const getUserCollection = async (req: IAuthRequest, res: Response) => {
+export const getUserCollection = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
+    if (!req.user) {
+      throw new AppError('Unauthorized', 401);
     }
 
-    const userCollections = await Collection.find({ userId: userId }).sort({ createdAt: -1 });
+    const collections = await getUserCollectionsService(req.user._id);
+
     res.status(200).json({
-      message: 'Collections are fetched successfully',
-      body: { userCollection: userCollections },
+      message: 'Collections fetched successfully',
+      body: { collections },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while fetching the collection',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const updateCollection = async (req: IAuthRequest, res: Response) => {
+export const updateCollection = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
+    if (!req.user) {
+      throw new AppError('Unauthorized', 401);
     }
-    let { collectionId } = req.params;
+
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
     const { name, description } = req.body;
 
-    if (Array.isArray(collectionId)) {
-      collectionId = collectionId[0];
-    }
-
-    const updatedCollection = await Collection.updateOne(
-      { userId: userId, _id: new ObjectId(collectionId) },
-      { $set: { name: name, description: description } },
-    );
-
-    if (!updatedCollection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
+    const collection = await updateCollectionService(req.user._id, collectionId, name, description);
 
     res.status(200).json({
-      message: 'Collection is updated successfully',
-      body: { updatedCollection: updatedCollection },
+      message: 'Collection updated successfully',
+      body: { collection },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error : no documents found',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const deleteCollection = async (req: IAuthRequest, res: Response) => {
+export const deleteCollection = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user._id;
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    let { collectionId } = req.params;
-
-    if (Array.isArray(collectionId)) {
-      collectionId = collectionId[0];
+    if (!req.user) {
+      throw new AppError('Unauthorized', 401);
     }
 
-    if (!collectionId) {
-      throw new Error('Collection ID is required');
-    }
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
 
-    const collection = await Collection.findOne({
-      _id: collectionId,
-      userId,
-    });
-
-    if (!collection) {
-      return res.status(404).json({ message: 'Collection not found' });
-    }
-
-    const articles = await Article.find({
-      collectionId,
-      userId,
-    });
-
-    const articleIds = articles.map((a) => a._id);
-
-    const attachments = await Attachment.find({
-      articleId: { $in: articleIds },
-      userId,
-    });
-
-    for (const attachment of attachments) {
-      if (fs.existsSync(attachment.path)) {
-        fs.unlinkSync(attachment.path);
-      }
-    }
-
-    await Attachment.deleteMany({
-      articleId: { $in: articleIds },
-      userId,
-    });
-
-    await Article.deleteMany({
-      collectionId,
-      userId,
-    });
-
-    await collection.deleteOne();
+    const deletedCollection = await deleteCollectionService(req.user._id, collectionId);
 
     res.status(200).json({
-      message: 'Collection is deleted successfully',
-      body: { deletedCollection: collection },
+      message: 'Collection deleted successfully',
+      body: { deletedCollection },
     });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error : No documents found',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
