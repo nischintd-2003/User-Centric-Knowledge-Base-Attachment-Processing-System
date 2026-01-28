@@ -1,137 +1,82 @@
-import { Response } from 'express';
-import fs from 'fs';
-import Attachment from '../models/attachment-model';
-import Article from '../models/article-model';
+import { Response, NextFunction } from 'express';
 import { IAuthRequest } from './collection-controller';
+import {
+  deleteAttachmentService,
+  downloadAttachmentService,
+  listAttachmentsService,
+  uploadAttachmentsService,
+} from '../services/attachment-service';
+import { AppError } from '../utils/app-error';
+import { getParamAsString } from '../utils/request-utils';
 
-export const uploadAttachments = async (req: IAuthRequest, res: Response) => {
+export const uploadAttachments = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { collectionId, articleId } = req.params;
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
+
+    const collectionId = getParamAsString(req.params.collectionId, 'collectionId');
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
     const files = req.files as Express.Multer.File[];
 
-    if (!userId || typeof articleId !== 'string' || typeof collectionId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request parameters' });
-    }
-
-    const article = await Article.findOne({
-      _id: articleId,
+    const attachments = await uploadAttachmentsService(
+      req.user._id,
       collectionId,
-      userId,
-    });
-
-    if (!article) {
-      return res.status(404).json({ message: 'Article not found' });
-    }
-
-    if (!files || files.length === 0) {
-      return res.status(400).json({ message: 'No files uploaded' });
-    }
-
-    const attachments = files.map((file) => ({
-      userId,
       articleId,
-      filename: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      path: file.path,
-      uploadedAt: new Date(),
-    }));
+      files,
+    );
 
-    const savedAttachments = await Attachment.insertMany(attachments);
-
-    res.status(200).json({ message: 'Uploaded the file successfully', body: savedAttachments });
-  } catch (error) {
-    res.status(400).json({
-      message: 'Error while uploading files',
-      error: JSON.stringify(error),
+    res.status(200).json({
+      message: 'Files uploaded successfully',
+      body: attachments,
     });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const listAttachments = async (req: IAuthRequest, res: Response) => {
+export const listAttachments = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { articleId } = req.params;
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    if (!userId || typeof articleId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request parameters' });
-    }
+    const articleId = getParamAsString(req.params.articleId, 'articleId');
 
-    const attachments = await Attachment.find({
-      articleId,
-      userId,
+    const attachments = await listAttachmentsService(req.user._id, articleId);
+
+    res.status(200).json({
+      message: 'Attachments fetched successfully',
+      body: attachments,
     });
-
-    res.status(200).json({ message: 'Attachments fetched successfully', body: attachments });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while fetching files',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const downloadAttachment = async (req: IAuthRequest, res: Response) => {
+export const downloadAttachment = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { attachmentId } = req.params;
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    if (!userId || typeof attachmentId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request parameters' });
-    }
+    const attachmentId = getParamAsString(req.params.attachmentId, 'attachmentId');
 
-    const attachment = await Attachment.findOne({
-      _id: attachmentId,
-      userId,
-    });
-
-    if (!attachment) {
-      return res.status(404).json({ message: 'Attachment not found' });
-    }
-
-    if (!fs.existsSync(attachment.path)) {
-      return res.status(410).json({ message: 'File not found on disk' });
-    }
+    const attachment = await downloadAttachmentService(req.user._id, attachmentId);
 
     res.download(attachment.path, attachment.filename);
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while downloading the  file',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };
 
-export const deleteAttachment = async (req: IAuthRequest, res: Response) => {
+export const deleteAttachment = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { attachmentId } = req.params;
-    const userId = req.user._id;
+    if (!req.user) throw new AppError('Unauthorized', 401);
 
-    if (!userId || typeof attachmentId !== 'string') {
-      return res.status(400).json({ message: 'Invalid request parameters' });
-    }
+    const attachmentId = getParamAsString(req.params.attachmentId, 'attachmentId');
 
-    const attachment = await Attachment.findOne({
-      _id: attachmentId,
-      userId,
+    const attachment = await deleteAttachmentService(req.user._id, attachmentId);
+
+    res.status(200).json({
+      message: 'Attachment deleted successfully',
+      body: attachment,
     });
-
-    if (!attachment) {
-      return res.status(404).json({ message: 'Attachment not found' });
-    }
-
-    if (fs.existsSync(attachment.path)) {
-      fs.unlinkSync(attachment.path);
-    }
-
-    await attachment.deleteOne();
-
-    res.status(200).json({ message: 'Attachment deleted successfully', body: attachment });
   } catch (error) {
-    res.status(400).json({
-      message: 'Error while deleting file',
-      error: JSON.stringify(error),
-    });
+    next(error);
   }
 };

@@ -6,28 +6,11 @@ import {
   updateCollectionService,
 } from '../services/collection-service';
 import { AppError } from '../utils/app-error';
+import { getParamAsString } from '../utils/request-utils';
 
 export interface IAuthRequest extends Request {
   user?: any;
 }
-
-const getParamAsString = (param: string | string[] | undefined, name: string): string => {
-  if (param === undefined) {
-    throw new AppError(`${name} is required`, 400);
-  }
-
-  if (Array.isArray(param)) {
-    const value = param[0];
-
-    if (value === undefined) {
-      throw new AppError(`${name} is required`, 400);
-    }
-
-    return value;
-  }
-
-  return param;
-};
 
 export const createCollection = async (req: IAuthRequest, res: Response, next: NextFunction) => {
   try {
