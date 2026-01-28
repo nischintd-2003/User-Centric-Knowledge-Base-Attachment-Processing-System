@@ -1,9 +1,10 @@
+import { IUser } from './user';
+import mongoose from 'mongoose';
+
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-      };
+      user?: IUser & { _id: mongoose.Types.ObjectId };
     }
   }
 }
